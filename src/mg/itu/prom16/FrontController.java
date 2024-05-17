@@ -8,49 +8,41 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import utils.PackageScanner;
 
 public class FrontController extends HttpServlet {
-    String classList = "<br> <h3 style='margin-left:10%;'>";
+        PackageScanner scanner;
+        boolean isChecked;
+        String ListService;
 
-    public void init() throws ServletException {
+    public void init() {
+        scanner = new PackageScanner();
+        // get parameter written in web.xml:
         String packagename = this.getInitParameter("package");
-        packagename  = packagename .replace(".", "/");
-        try {
-            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-            java.net.URL resource = classLoader.getResource(packagename );
-            String filepath = resource.getFile().replace("%20"," ");
-            File directory = new File(filepath);
-            if(directory.isDirectory()){
-                packagename  = packagename .replace("/", ".");
-                for (String filename: directory.list()){
-                        filename = filename.substring(0, filename.length()- 6);
-                        String className = packagename +"."+ filename;
-                            Class<?> clazz = Class.forName(className);
-                        if(clazz.isAnnotationPresent(Controller.class)){
-                            classList += className +"<br>";
-                        }
-                }
-            }
-            classList += "</h3>";
-        } catch (ClassNotFoundException e) {
-            System.out.println(e.getMessage());                
-        }
+        // get all controller within packagename:
+        ListService = scanner.getAnnotatedClassWithin(packagename, Controller.class);
+        // mark the package as checked which means we have the list of controllers within the package:
+        isChecked = true;
     }
     protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            out.println("<h2> CONTROLLER LIST: </h2>"+ classList);
+        if(!isChecked){
+            init();
+        } else{
+            try (PrintWriter out = response.getWriter()) {
+                out.println(ListService);
+            }
         }
-}
+    }
 
-@Override
-protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-processRequest(request, response);
-}
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        processRequest(request, response);
+    }
 
-@Override
-protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-processRequest(request, response);
-}
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        processRequest(request, response);
+    }
 }
 
