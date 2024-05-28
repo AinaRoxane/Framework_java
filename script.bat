@@ -1,11 +1,11 @@
 @echo off
 :: variables
-set "test_filepath=B:\S4\Web-dyn\Framework_sprint_test"
+set "test_filepath=B:\S4\Web-dyn\GitHub\test"
+set "filepath=B:\S4\Web-dyn\GitHub"
+set "project_name=sprint3-2483"
 
 :: compile all classes
-for /r src %%i in (*.java) do (
-    javac -cp "bin\;C:\Program Files\Apache Software Foundation\Tomcat 11.0\lib\servlet-api.jar" -d bin\ %%i
-)
+javac -cp "%filepath%\%project_name%\bin;C:\Program Files\Apache Software Foundation\Tomcat 11.0\lib\servlet-api.jar" -d %filepath%\%project_name%\bin  %filepath%\%project_name%\src\annotation\*.java  %filepath%\%project_name%\src\utils\*.java %filepath%\%project_name%\src\mg\itu\prom16\*.java
 
 :: turn the compiled classes to jar
 cd /d ".\bin"
