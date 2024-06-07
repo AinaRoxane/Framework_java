@@ -14,6 +14,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.RequestDispatcher;
 
 public class FrontController extends HttpServlet {
         PackageScanner scanner;
@@ -34,7 +35,7 @@ public class FrontController extends HttpServlet {
                 Mapping mapping = ListService.get(url);
                 Class<?> clazz =  java.lang.Class.forName(mapping.getClassName());
                 Object instance = clazz.getDeclaredConstructor().newInstance();
-
+                Method method = clazz.getDeclaredMethod(mapping.getMethodName());
                 Object result = method.invoke(instance);
                 if(result instanceof String){
                     out.println(result);
