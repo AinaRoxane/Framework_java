@@ -9,6 +9,7 @@ import annotation.Controller;
 import annotation.Get;
 import utils.Mapping;
 import utils.ModelView;
+
 import utils.PackageScanner;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -36,6 +37,7 @@ public class FrontController extends HttpServlet {
                 Class<?> clazz =  java.lang.Class.forName(mapping.getClassName());
                 Object instance = clazz.getDeclaredConstructor().newInstance();
                 Method method = clazz.getDeclaredMethod(mapping.getMethodName());
+
                 Object result = method.invoke(instance);
                 if(result instanceof String){
                     out.println(result);
@@ -49,7 +51,7 @@ public class FrontController extends HttpServlet {
                 out.println("<h3>Oops!</h3>");
                 out.println("<p>Aucun controller ne prend en compte cet url : "+url+"</p>");
                 out.println(e.getMessage());
-            }
+            } 
     }
 
     @Override
