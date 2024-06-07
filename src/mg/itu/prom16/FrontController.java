@@ -8,6 +8,7 @@ import java.util.HashMap;
 import annotation.Controller;
 import annotation.Get;
 import utils.Mapping;
+import utils.ModelView;
 import utils.PackageScanner;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -33,11 +34,20 @@ public class FrontController extends HttpServlet {
                 Mapping mapping = ListService.get(url);
                 Class<?> clazz =  java.lang.Class.forName(mapping.getClassName());
                 Object instance = clazz.getDeclaredConstructor().newInstance();
-                Method method = clazz.getDeclaredMethod(mapping.getMethodName());
-                String result = (String) method.invoke(instance);
-                out.println(result);
+
+                Object result = method.invoke(instance);
+                if(result instanceof String){
+                    out.println(result);
+                } else if( result instanceof ModelView){
+                    ModelView mv = (ModelView) result;
+                    request.setAttribute(mv.getVariableName(), mv.getData().get(mv.getVariableName()));
+                    RequestDispatcher dispat = request.getRequestDispatcher(mv.getUrl());
+                    dispat.forward(request,response);
+                }
             } catch (Exception e) {
-                out.println("Aucun controller ne prend en compte cet url!");
+                out.println("<h3>Oops!</h3>");
+                out.println("<p>Aucun controller ne prend en compte cet url : "+url+"</p>");
+                out.println(e.getMessage());
             }
     }
 
