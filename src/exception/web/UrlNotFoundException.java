@@ -1,4 +1,4 @@
-package exception;
+package exception.web;
 
 public class UrlNotFoundException extends Exception{
     
