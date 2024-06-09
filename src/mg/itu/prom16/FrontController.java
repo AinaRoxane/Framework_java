@@ -7,9 +7,10 @@ import java.util.HashMap;
 
 import annotation.Controller;
 import annotation.Get;
+import exception.terminal.DuplicateGetMappingException;
+import exception.web.ReturnTypeException;
 import utils.Mapping;
 import utils.ModelView;
-
 import utils.PackageScanner;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -21,13 +22,19 @@ public class FrontController extends HttpServlet {
         PackageScanner scanner;
         HashMap<String , Mapping > ListService;
 
+    @Override
     public void init() {
-        scanner = new PackageScanner();
-        // get parameter written in web.xml:
-        String packagename = this.getInitParameter("package");
-        // get all controller within packagename:
-        ListService = scanner.getMapping(packagename, Controller.class);
+        try {
+            scanner = new PackageScanner();
+            // get parameter written in web.xml:
+            String packagename = this.getInitParameter("package");
+            // get all controller within packagename:
+            ListService = scanner.getMapping(packagename, Controller.class);
+        } catch (DuplicateGetMappingException e){
+            System.out.println(e.getMessage());
+        }
     }
+
     protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
         PrintWriter out = response.getWriter();
@@ -37,7 +44,6 @@ public class FrontController extends HttpServlet {
                 Class<?> clazz =  java.lang.Class.forName(mapping.getClassName());
                 Object instance = clazz.getDeclaredConstructor().newInstance();
                 Method method = clazz.getDeclaredMethod(mapping.getMethodName());
-
                 Object result = method.invoke(instance);
                 if(result instanceof String){
                     out.println(result);
@@ -46,12 +52,13 @@ public class FrontController extends HttpServlet {
                     request.setAttribute(mv.getVariableName(), mv.getData().get(mv.getVariableName()));
                     RequestDispatcher dispat = request.getRequestDispatcher(mv.getUrl());
                     dispat.forward(request,response);
+                } else {
+                    throw new ReturnTypeException ("Type de retour inconnu");
                 }
-            } catch (Exception e) {
+            } catch ( Exception e) {
                 out.println("<h3>Oops!</h3>");
-                out.println("<p>Aucun controller ne prend en compte cet url : "+url+"</p>");
-                out.println(e.getMessage());
-            } 
+                System.out.println(e.getMessage());
+            }
     }
 
     @Override
