@@ -1,7 +1,9 @@
 package exception.web;
 
-public class ReturnTypeException extends Exception{
-    public ReturnTypeException (String message){
+import exception.FrameworkException;
+
+public class ReturnTypeException extends FrameworkException {
+    public ReturnTypeException(String message) {
         super(message);
     }
 }
