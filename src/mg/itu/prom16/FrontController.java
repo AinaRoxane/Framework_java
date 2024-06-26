@@ -34,7 +34,7 @@ public class FrontController extends HttpServlet {
     public void init() {
         try {
             scanner = new PackageScanner();
-            String packagename = this.getInitParameter("package");
+            String packagename = this.getInitParameter("controller-package");
             ListService = scanner.getMapping(packagename, Controller.class);
         } catch (DuplicateGetMappingException e) {
             log("DuplicateGetMappingException occurred: " + e.getMessage());
@@ -73,7 +73,7 @@ public class FrontController extends HttpServlet {
                 String[] parts = paramName.split("\\.");
                 if (parts.length > 1) {
                     String objectName = parts[0];
-                    Class<?> objetclazz = Class.forName("model." + objectName);
+                    Class<?> objetclazz = Class.forName(this.getInitParameter("model-package") +"."+ objectName);
                     Object mydataholder;
                     if (!objets.containsKey(objectName)) {
                         mydataholder = objetclazz.getDeclaredConstructor().newInstance();
@@ -99,7 +99,15 @@ public class FrontController extends HttpServlet {
             // Prepare method arguments:
             List<Object> methodArgs = new ArrayList<>();
             for (Parameter parameter : method.getParameters()) {
-                String paramName = parameter.isAnnotationPresent(Param.class) ? parameter.getAnnotation(Param.class).name() : parameter.getName();
+                String paramName = "";
+                if(parameter.isAnnotationPresent(Param.class)){
+                    paramName = parameter.getAnnotation(Param.class).name();
+                } else {
+                    request.setAttribute("error", "ETU002483, tsy misy annotation");
+                    RequestDispatcher dispath = request.getRequestDispatcher("error.jsp");
+                    dispath.forward(request, response);
+                }
+                //String paramName = parameter.isAnnotationPresent(Param.class) ? parameter.getAnnotation(Param.class).name() : parameter.getName();
                 methodArgs.add(objets.get(paramName));
             }
 
