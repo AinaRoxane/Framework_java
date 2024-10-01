@@ -1,4 +1,5 @@
 package utils;
+import java.sql.Date;
 
 public class Convertor {
     public static Object convertParameter(Class<?> parameterType, String parameterValue) {
@@ -25,7 +26,9 @@ public class Convertor {
             return Boolean.parseBoolean(parameterValue);
         } else if(parameterType.equals(long.class) || parameterType.equals(Long.class)){
             return Long.parseLong(parameterValue);
-        }else {
+        } else if(parameterType.equals(Date.class)){
+            return Date.valueOf(parameterValue);
+        } else {
             return parameterValue;
         }
     }

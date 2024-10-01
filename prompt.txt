@@ -1,17 +1,5 @@
-// Envoyer un data de type object vers Frontcontroller qui va ensuite l'envoyer vers une page .jsp 
-pour le display
-    Etape 1 : Créer une page jsp ou on placera un formulaire
-    Etape 2 : Vérifier que le nom des input soit de la forme "Objet.Attribute" ou "paramname"
-    Etape 3 : renvoyer le formulaire vers l'url de la fonction qui le prend en charge dans son controller
-    Etape 4 : Dans FrontController, stocker tous les noms des parametres envoyer depuis le formulaire dans une variable
-    Etape 5 : Créer une variable Map(String, Object) pour stocker les arguments à mettre lors de l'invokation de la fonction en charge de l'url dans le controller
-    Etape 6 : parcourir tous les noms, si le split("\\.") du nom donne:
-                -   un tableau de taille supérieur à 1, on va vérifier si Map contient déja une clé split("\\.")[0]
-                    * si oui, on va prendre cette variable pour la suite 
-                    * sinon on va instancier une nouvelle variable avec Class.forName("model."+split("\\.")[0])
-                    Désormais, nous avons un Objet de type ("model."+split("\\.")[0]) où nous allons donner une valeur à
-                    l'Attribut "Attribute" en invokant son setter. ex: setName(request.getParameterValues("Objet.Attribute"))
-                    on va placer cette variable dans Map (split("\\.")[0], l'objet de type ("model."+split("\\.")[0]) ) 
-                -   sinon, on va juste placer cette variable dans Map (noms[i], request.getParameterValues(noms[i]))
-    Etape 7 : Nous allons créer un tableau qui détiendra toutes les valeurs de la Map. donc boucler le
-    contenu de la Map appeler les clés un par un et mettre leur valeurs dans un tableau
+framework:
+class annotation RESTAPI
+
+test:
+annoter une methode pour qu'il soit relier a une url 
