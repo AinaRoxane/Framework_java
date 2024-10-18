@@ -64,6 +64,7 @@ public class FrontController extends HttpServlet {
                 // Vérifie si la méthode est annotée avec @RestAPI
                 if (method.isAnnotationPresent(RestAPI.class)) {
                     Object result = method.invoke(instance);
+                    // package a ajoutee dans tomcat:
                     Gson gson = new Gson();
                     String jsonResponse;
 
