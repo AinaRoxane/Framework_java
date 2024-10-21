@@ -8,10 +8,10 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import com.google.gson.Gson;
-import annotation.Controller;
 import annotation.RestAPI;
+import annotation.Get;
+import annotation.Controller;
 import exception.terminal.DuplicateGetMappingException;
 import exception.web.ReturnTypeException;
 import utils.MapHandler;
@@ -19,8 +19,6 @@ import utils.Mapping;
 import utils.ModelView;
 import utils.MySession;
 import utils.PackageScanner;
-import utils.RequestVerb;
-import utils.VerbMethod;
 
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
@@ -54,28 +52,19 @@ public class FrontController extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND, "URL not mapped.");
                 return;
             }
-
+    
             MapHandler mapHandler = new MapHandler();
             String modelPackage = this.getInitParameter("model-package");
-
+    
             try {
                 Class<?> clazz = Class.forName(mapping.getClassName());
                 Object instance = clazz.getDeclaredConstructor().newInstance();
                 Method method = mapHandler.getMethod(clazz, mapping.getMethodName());
-
-                // Use RequestVerb to get the HTTP verb (GET, POST, etc.)
-                String methodVerb = RequestVerb.getMethodVerb(method);
-                VerbMethod verbMethod = new VerbMethod(method, methodVerb);
-
-                // Check if the HTTP verb in the request matches the method's verb
-                if (!verbMethod.isRequestValid(request)) {
-                    response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "HTTP verb not allowed for this URL.");
-                    return;
-                }
-
-                // Handle RestAPI or normal GET/POST behavior
-                if (verbMethod.isRestAPI()) {
+    
+                // Vérifie si la méthode est annotée avec @RestAPI
+                if (method.isAnnotationPresent(RestAPI.class)) {
                     Object result = method.invoke(instance);
+                    // package a ajoutee dans tomcat:
                     Gson gson = new Gson();
                     String jsonResponse;
 
@@ -90,21 +79,21 @@ public class FrontController extends HttpServlet {
                     out.print(jsonResponse);
                     return;
                 } 
-                else if (RequestVerb.GET.equalsIgnoreCase(methodVerb)) {
-                    // Handling for GET requests
+                else if (method.isAnnotationPresent(Get.class)){
+                    // Ancien comportement si l'annotation n'est pas présente
                     Enumeration<String> parameterNames = request.getParameterNames();
                     Map<String, Object> objets = mapHandler.getAllObject(parameterNames, modelPackage, request);
-
+                    
                     HttpSession session = request.getSession();
                     if (mapHandler.hasMySessionAttribute(clazz.getDeclaredFields()) != -1) {
                         Method sessionGetter = clazz.getDeclaredMethod("getMySession");
-                        MySession mysession = (MySession) sessionGetter.invoke(instance);
+                        MySession mysession=  (MySession) sessionGetter.invoke(instance);
                         mysession.setSession(session);
                     }
-
+                    
                     List<Object> methodArgs = mapHandler.getMethodArguments(method, objets, session);
                     Object result = method.invoke(instance, methodArgs.toArray());
-
+    
                     if (result instanceof String) {
                         out.println(result);
                     } else if (result instanceof ModelView) {
@@ -129,7 +118,7 @@ public class FrontController extends HttpServlet {
             }
         } finally {
             if (out != null) {
-                out.close();
+                out.close(); 
             }
         }
     }
