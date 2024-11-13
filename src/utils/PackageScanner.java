@@ -1,94 +1,57 @@
 package utils;
 
-import annotation.Get;
-import exception.terminal.DuplicateGetMappingException;
-import java.io.File;
-import java.lang.annotation.Annotation;
+
+import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import annotation.Controller;
+import annotation.request.URL;
+import utils.manager.data.RequestVerb;
+import utils.manager.data.VerbMethod;
+import exception.DuplicateUrlException;
+import exception.InvalidControllerPackageException;
+import utils.manager.url.Mapping;
 
 public class PackageScanner {
-    public String getAnnotatedClassWithin(String packagename, Class<? extends Annotation> annotationClass) {
-        String ListService = "";
-        packagename = packagename.replace(".", "/");
+    private PackageScanner() {
+    }
 
-        try {
-            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-            URL resource = classLoader.getResource(packagename);
+    public static Map<String, Mapping> scanPackage(String packageName)
+            throws ClassNotFoundException, IOException, DuplicateUrlException, InvalidControllerPackageException {
+        if (packageName == null || packageName.isBlank()) {
+            throw new InvalidControllerPackageException("Controller package provider cannot be null");
+        }
 
-            if (resource == null) {
-                System.out.println("Package not found: " + packagename);
-                return "";
-            }
+        Map<String, Mapping> result = new HashMap<>();
 
-            String filepath = resource.getFile().replace("%20", " ");
-            File directory = new File(filepath);
+        ArrayList<Class<?>> classes = (ArrayList<Class<?>>) PackageUtils.getClassesWithAnnotation(packageName,
+                Controller.class);
+        for (Class<?> clazz : classes) {
+            List<Method> classMethods = PackageUtils.getClassMethodsWithAnnotation(clazz, URL.class);
 
-            if (directory.isDirectory()) {
-                packagename = packagename.replace("/", ".");
+            for (Method method : classMethods) {
+                URL methodAnnotation = method.getAnnotation(URL.class);
+                String url = methodAnnotation.value();
+                
+                VerbMethod verbMethod = new VerbMethod(method, RequestVerb.getMethodVerb(method));
 
-                for (String filename : directory.list()) {
-                    if (filename.endsWith(".class")) {
-                        filename = filename.substring(0, filename.length() - 6);
-                        String className = packagename + "." + filename;
-                        System.out.println("Found class: " + className);
-                        Class<?> clazz = Class.forName(className);
-                        if (clazz.isAnnotationPresent(annotationClass)) {
-                            System.out.println("Annotated class found: " + className);
-                            ListService += className + ",";
-                        }
-                    }
+                Mapping mapping = result.get(url);
+                
+                if (mapping != null) {
+                    mapping.addVerbMethod(verbMethod);
+                } else {
+                    mapping = new Mapping(clazz);
+
+                    mapping.addVerbMethod(verbMethod);
+                    result.put(url, mapping);
                 }
-            } else {
-                System.out.println("Not a directory: " + filepath);
-            }
-        } catch (ClassNotFoundException e) {
-            System.out.println("Class not found: " + e.getMessage());
-        }
-        return ListService;
-    }
-
-    public HashMap<String, Mapping> getMapping(String packagename, Class<? extends Annotation> annotationClass) throws DuplicateGetMappingException {
-        String[] ListController = getAnnotatedClassWithin(packagename, annotationClass).split(",");
-        HashMap<String, Mapping> ListClasses = new HashMap<>();
-        for (String className : ListController) {
-            if (className.isEmpty()) {
-                continue;
-            }
-            try {
-                Class<?> clazz = Class.forName(className);
-                Method[] methods = clazz.getDeclaredMethods();
-                for (Method method : methods) {
-                    if (method.isAnnotationPresent(Get.class)) {
-                        Mapping value = new Mapping(className, method.getName());
-                        String key = method.getAnnotation(Get.class).url();
-                        if (!wasUsed(key, ListClasses)) {
-                            ListClasses.put(key, value);
-                            System.out.println("Mapped URL: " + key + " to method: " + method.getName());
-                        } else {
-                            throw new DuplicateGetMappingException("The url: " + key + " from " + className + " method " + method.getName() + " is already used by another class!");
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                System.out.println("Error processing class: " + className + " - " + e.getMessage());
             }
         }
-        return ListClasses;
-    }
 
-    public boolean wasUsed(String url, HashMap<String, Mapping> ListClasses) {
-        return ListClasses.containsKey(url);
-    }
-
-    public String conform_url(String url) {
-        String newURL = "/";
-        String[] path1 = url.split("//");
-        String[] path = path1[1].split("/");
-        for (int i = 2; i < path.length; i++) {
-            newURL += path[i] + "/";
-        }
-        return newURL.substring(0, newURL.length() - 1);
+        return result;
     }
 }

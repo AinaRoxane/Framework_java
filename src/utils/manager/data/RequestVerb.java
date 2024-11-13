@@ -1,7 +1,8 @@
-package utils;
+package utils.manager.data;
+
 
 import java.lang.reflect.Method;
-import annotation.Post;
+
 public class RequestVerb {
     public static final String GET = "GET";
     public static final String POST = "POST";
@@ -10,7 +11,7 @@ public class RequestVerb {
 
     public static String getMethodVerb(Method method) {
         String verb = RequestVerb.GET;
-        if (method.isAnnotationPresent(Post.class)) {
+        if (method.isAnnotationPresent(annotation.request.POST.class)) {
             verb = RequestVerb.POST;
         }
         return verb;

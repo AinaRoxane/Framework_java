@@ -1,10 +1,10 @@
-package utils;
+package utils.manager.data;
 
 import java.lang.reflect.Method;
 import java.util.Objects;
 
 import jakarta.servlet.http.HttpServletRequest;
-import annotation.RestAPI;
+import annotation.RestApi;
 
 public class VerbMethod {
     Method method;
@@ -17,7 +17,7 @@ public class VerbMethod {
     }
 
     public boolean isRestAPI() {
-        return method.isAnnotationPresent(RestAPI.class);
+        return method.isAnnotationPresent(RestApi.class);
     }
 
     // Constructor

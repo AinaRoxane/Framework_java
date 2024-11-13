@@ -1,146 +1,94 @@
 package mg.itu.prom16;
 
+
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import com.google.gson.Gson;
-import annotation.Controller;
-import annotation.RestAPI;
-import exception.terminal.DuplicateGetMappingException;
-import exception.web.ReturnTypeException;
-import utils.MapHandler;
-import utils.Mapping;
-import utils.ModelView;
-import utils.MySession;
-import utils.PackageScanner;
-import utils.RequestVerb;
-import utils.VerbMethod;
-
-import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 
+import utils.manager.MainProcess;
+import exception.DuplicateUrlException;
+import exception.IllegalReturnTypeException;
+import exception.InvalidControllerPackageException;
+import exception.UrlNotFoundException;
+import utils.manager.handler.ExceptionHandler;
+import utils.manager.url.Mapping;
+
+@MultipartConfig
 public class FrontController extends HttpServlet {
-    private PackageScanner scanner;
-    private HashMap<String, Mapping> ListService;
+    private Map<String, Mapping> URLMappings;
+    private Exception exception = null;
 
-    @Override
-    public void init() {
+    // Class methods
+    private void processRequest(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
         try {
-            scanner = new PackageScanner();
-            String packagename = this.getInitParameter("controller-package");
-            ListService = scanner.getMapping(packagename, Controller.class);
-        } catch (DuplicateGetMappingException e) {
-            log("DuplicateGetMappingException occurred: " + e.getMessage());
+            MainProcess.handleRequest(this, request, response);
+        } catch (UrlNotFoundException | IllegalReturnTypeException e) {
+            ExceptionHandler.handleException(e, response);
+        } catch (Exception e) {
+            ExceptionHandler.handleException(e, response);
         }
     }
 
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        PrintWriter out = response.getWriter();
+    // Override methods
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         try {
-            String url = scanner.conform_url(request.getRequestURL().toString());
-            Mapping mapping = ListService.get(url);
-            if (mapping == null) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND, "URL not mapped.");
-                return;
-            }
-
-            MapHandler mapHandler = new MapHandler();
-            String modelPackage = this.getInitParameter("model-package");
-
-            try {
-                Class<?> clazz = Class.forName(mapping.getClassName());
-                Object instance = clazz.getDeclaredConstructor().newInstance();
-                Method method = mapHandler.getMethod(clazz, mapping.getMethodName());
-
-                // Use RequestVerb to get the HTTP verb (GET, POST, etc.)
-                String methodVerb = RequestVerb.getMethodVerb(method);
-                VerbMethod verbMethod = new VerbMethod(method, methodVerb);
-
-                // Check if the HTTP verb in the request matches the method's verb
-                if (!verbMethod.isRequestValid(request)) {
-                    response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "HTTP verb not allowed for this URL.");
-                    return;
-                }
-
-                // Handle RestAPI or normal GET/POST behavior
-                if (verbMethod.isRestAPI()) {
-                    Object result = method.invoke(instance);
-                    Gson gson = new Gson();
-                    String jsonResponse;
-
-                    if (result instanceof ModelView) {
-                        ModelView mv = (ModelView) result;
-                        jsonResponse = gson.toJson(mv.getData());
-                    } else {
-                        jsonResponse = gson.toJson(result);
-                    }
-                    // Set response type to JSON
-                    response.setContentType("application/json");
-                    out.print(jsonResponse);
-                    return;
-                } 
-                else if (RequestVerb.GET.equalsIgnoreCase(methodVerb)) {
-                    // Handling for GET requests
-                    Enumeration<String> parameterNames = request.getParameterNames();
-                    Map<String, Object> objets = mapHandler.getAllObject(parameterNames, modelPackage, request);
-
-                    HttpSession session = request.getSession();
-                    if (mapHandler.hasMySessionAttribute(clazz.getDeclaredFields()) != -1) {
-                        Method sessionGetter = clazz.getDeclaredMethod("getMySession");
-                        MySession mysession = (MySession) sessionGetter.invoke(instance);
-                        mysession.setSession(session);
-                    }
-
-                    List<Object> methodArgs = mapHandler.getMethodArguments(method, objets, session);
-                    Object result = method.invoke(instance, methodArgs.toArray());
-
-                    if (result instanceof String) {
-                        out.println(result);
-                    } else if (result instanceof ModelView) {
-                        ModelView mv = (ModelView) result;
-                        if (mv.getData() != null) {
-                            mv.getData().forEach(request::setAttribute);
-                        }
-                        RequestDispatcher dispatcher = request.getRequestDispatcher(mv.getUrl());
-                        dispatcher.forward(request, response);
-                    } else {
-                        throw new ReturnTypeException("Return type not handled for: " + url);
-                    }
-                }
-            } catch (InvocationTargetException e) {
-                Throwable cause = e.getCause();
-                log("Error occurred while invoking method: " + cause);
-                cause.printStackTrace(out);
-            } catch (Exception e) {
-                out.println("<h3>Oops!</h3>");
-                out.println("<p>An error occurred while processing the request.</p>");
-                e.printStackTrace(out);
-            }
-        } finally {
-            if (out != null) {
-                out.close();
-            }
+            processRequest(req, resp);
+        } catch (ServletException e) {
+            ExceptionHandler.handleException(
+                    new ServletException("A servlet error has occured while executing doGet method", e.getCause()),
+                    resp);
+        } catch (IOException e) {
+            ExceptionHandler.handleException(
+                    new IOException("An IO error has occured while executing doGet method", e.getCause()), resp);
         }
     }
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        processRequest(request, response);
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            processRequest(req, resp);
+        } catch (ServletException e) {
+            ExceptionHandler.handleException(
+                    new ServletException("A servlet error has occured while executing doPost method", e.getCause()),
+                    resp);
+        } catch (IOException e) {
+            ExceptionHandler.handleException(
+                    new IOException("An IO error has occured while executing doPost method", e.getCause()), resp);
+        }
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        processRequest(request, response);
+    public void init() throws ServletException {
+        try {
+            MainProcess.init(this);
+        } catch (InvalidControllerPackageException | DuplicateUrlException e) {
+            setException(e);
+        } catch (Exception e) {
+            setException(new Exception("An error has occured during initialization + " + e.getMessage(), e.getCause()));
+        }
+    }
+
+    // Getters and setters
+    public Map<String, Mapping> getURLMapping() {
+        return URLMappings;
+    }
+
+    public void setURLMapping(Map<String, Mapping> urlMapping) {
+        this.URLMappings = urlMapping;
+    }
+
+    public Exception getException() {
+        return exception;
+    }
+
+    public void setException(Exception exception) {
+        this.exception = exception;
     }
 }

@@ -1,8 +1,7 @@
-package exception.web;
+package exception;
 
 public class UrlNotFoundException extends Exception{
-    
-    public UrlNotFoundException(String message){
+    public UrlNotFoundException(String message) {
         super(message);
     }
 }
