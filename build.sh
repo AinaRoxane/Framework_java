@@ -2,14 +2,11 @@
 
 # Define variables
 project_dir="/home/toffee/Documents/GitHub/Framework_java"
-test_dir="/home/toffee/Documents/S5/Naina/test"
+test_dir="/home/toffee/Documents/S5/Naina/SPRINT/test"
 web_dir="/opt/tomcat"
-<<<<<<< Updated upstream
-gson_jar="/home/toffee/Documents/apis/com.google.gson_2.10.1.v20230109-0753.jar"
-=======
->>>>>>> Stashed changes
+gson_jar="/home/toffee/Bureau/LOGICIELS/apis/com.google.gson_2.10.1.v20230109-0753.jar"
 
-lib_dir="$web_dir/lib/servlet-api.jar"
+lib_dir="/home/toffee/Bureau/LOGICIELS/apis/servlet-api.jar"
 src_dir="$project_dir/src"
 bin_dir="$project_dir/bin"
 
