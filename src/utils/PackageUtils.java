@@ -42,7 +42,7 @@ public class PackageUtils {
         for (File file : packageDir.listFiles()) {
             if (file.isDirectory()) {
                 classes.addAll(PackageUtils.getClasses(packageName + "." + file.getName()));
-            } else {
+            } else if (!file.isDirectory()) {
                 String className = packageName + "." + FileUtils.getSimpleFileName(file.getName(), "class");
                 classes.add(Class.forName(className));
             }

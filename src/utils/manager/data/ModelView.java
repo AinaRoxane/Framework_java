@@ -18,6 +18,7 @@ public class ModelView {
 
     // Constructor
     public ModelView() {
+        this.data = new HashMap<>();
     }
 
     public ModelView(String url, Map<String, Object> data) {

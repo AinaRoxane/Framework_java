@@ -3,6 +3,7 @@ package utils.manager.data;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import utils.FileUtils;
 
 public class File {
     String fileName;

@@ -1,6 +1,5 @@
 package utils.manager.handler;
 
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
@@ -28,26 +27,24 @@ public class ExceptionHandler {
             writer.println("<head>");
             writer.println("<meta charset=\"UTF-8\">");
             writer.println("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
-            writer.println("<title>Ember MVC Error</title>");
+            writer.println("<title>ERROR</title>");
             writer.println("<style>");
             writer.println(
-                    "body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4; color: #444; line-height: 1.6; padding: 20px; }");
-            writer.println("h1 { color: #e04e39; text-align: center; }");
-            writer.println("h2 { color: #1e719b; }");
+                    "body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #e6f2ff; color: #333; line-height: 1.6; padding: 20px; }");
+            writer.println("h1 { color: #0066cc; text-align: center; }");
+            writer.println("h2 { color: #004080; }");
             writer.println(
-                    ".container { max-width: 800px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }");
-            writer.println(".error-code { font-size: 1.2em; color: #e04e39; }");
-            writer.println(".error-message { font-weight: bold; }");
+                    ".container { max-width: 800px; margin: 0 auto; background-color: #f0f8ff; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }");
+            writer.println(".error-code { font-size: 1.2em; color: #0066cc; }");
+            writer.println(".error-message { font-weight: bold; color: #003366; }");
             writer.println(
-                    ".stack-trace { background-color: #f8f8f8; border: 1px solid #ddd; padding: 10px; overflow-x: auto; }");
+                    ".stack-trace { background-color: #e1ecf4; border: 1px solid #cce0ff; padding: 10px; overflow-x: auto; color: #002b4f; }");
             writer.println("</style>");
             writer.println("</head>");
             writer.println("<body>");
             writer.println("<div class=\"container\">");
-            writer.println("<h1>Ember MVC</h1>");
-            writer.println("<h2 class=\"error-code\">" + statusCode + " " + errorName + "</h2>");
+            writer.println("<h1>" + statusCode + " " + errorName + "</h1>");
             writer.println("<p class=\"error-message\">" + exception.getMessage() + "</p>");
-            writer.println("<h3>Stack Trace:</h3>");
             writer.println("<pre class=\"stack-trace\">");
             exception.printStackTrace(writer);
             writer.println("</pre>");
