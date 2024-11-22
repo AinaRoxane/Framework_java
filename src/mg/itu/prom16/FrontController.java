@@ -71,7 +71,7 @@ public class FrontController extends HttpServlet {
         } catch (InvalidControllerPackageException | DuplicateUrlException e) {
             setException(e);
         } catch (Exception e) {
-            setException(new Exception("An error has occured during initialization + " + e.getMessage(), e.getCause()));
+            setException(e);
         }
     }
 

@@ -1,3 +1,4 @@
+package utils.manager;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -22,8 +23,8 @@ import exception.InvalidRequestException;
 import exception.UrlNotFoundException;
 import utils.manager.handler.ExceptionHandler;
 import utils.manager.url.Mapping;
-import util.PackageScanner;
-import util.ReflectUtils;
+import utils.PackageScanner;
+import utils.ReflectUtils;
 
 public class MainProcess {
     static FrontController frontController;
@@ -62,12 +63,11 @@ public class MainProcess {
         
         VerbMethod verbMethod = mapping.getSpecificVerbMethod(verb);
         
-        Object result = ReflectUtils.executeRequestMethod(mapping, request, verb);
+        Object result = ReflectUtils.executeRequestMethod(mapping, request, response, verb);
 
         if (verbMethod.isRestAPI()) {
             result = handleRest(result, response);
         }   
-
         if (result instanceof String) {
             out.println(result.toString());
         } else if (result instanceof ModelView) {
@@ -88,7 +88,7 @@ public class MainProcess {
             throws ClassNotFoundException, IOException, DuplicateUrlException, InvalidControllerPackageException {
         frontController = controller;
 
-        String packageName = controller.getInitParameter("package_name");
+        String packageName = controller.getInitParameter("controller-package");
 
         HashMap<String, Mapping> urlMappings;
         urlMappings = (HashMap<String, Mapping>) PackageScanner.scanPackage(packageName);
