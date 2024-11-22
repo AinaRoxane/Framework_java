@@ -7,10 +7,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import annotation.RequestParameter;
 import utils.manager.data.Session;
 import exception.AnnotationNotPresentException;
@@ -49,7 +51,7 @@ public class ReflectUtils {
         }
     }
 
-    public static Object executeRequestMethod(Mapping mapping, HttpServletRequest request, String verb)
+    public static Object executeRequestMethod(Mapping mapping, HttpServletRequest request,HttpServletResponse response, String verb)
             throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
             InvocationTargetException, InstantiationException, ClassNotFoundException, NoSuchFieldException,
             AnnotationNotPresentException, InvalidRequestException, IOException, ServletException {
@@ -66,15 +68,76 @@ public class ReflectUtils {
             Object object = ObjectUtils.getDefaultValue(clazz);
             if (!parameter.isAnnotationPresent(RequestParameter.class) && !clazz.equals(Session.class)) {
                 throw new AnnotationNotPresentException(
-                        "One of you parameter require `@RequestParameter` annotation");
+                        "One of your parameter require `@RequestParameter` annotation");
             }
 
             object = ObjectUtils.getParameterInstance(request, parameter, clazz, object);
-
             objects.add(object);
         }
+        
+        // Validate the objects populated from the parameters
+        HashMap<String, String> errors = verifyValidation(objects);
+        if (!errors.isEmpty()) {
+            request.setAttribute("validationErrors", errors);
 
+            String referrer = request.getHeader("Referer");
+            if (referrer != null) {
+                request.getRequestDispatcher(referrer).forward(request, response);
+            } else {
+                throw new InvalidRequestException("Validation failed, and no referrer found to redirect back.");
+            }
+            return null;
+        }
+        
         return executeMethod(requestObject, method.getName(), objects.toArray());
+    }
+
+    public static HashMap<String, String> verifyValidation(List<Object> objects) {
+        HashMap<String, String> errors = new HashMap<>();
+
+        for (Object object : objects) {
+            Class<?> objClass = object.getClass();
+
+            for (Field field : objClass.getDeclaredFields()) {
+                field.setAccessible(true);
+
+                try {
+                    // Check if field has @Required annotation
+                    if (field.isAnnotationPresent(annotation.validation.Required.class)) {
+                        Object value = field.get(object);
+                        if (value == null || (value instanceof String && ((String) value).isEmpty())) {
+                            annotation.error.Error errorAnnotation = field.getAnnotation(annotation.error.Error.class);
+                            if (errorAnnotation != null) {
+                                errors.put(objClass.getName() + "." + field.getName(), errorAnnotation.message());
+                            }
+                        }
+                    }
+
+                    // Check if field has @Size annotation
+                    if (field.isAnnotationPresent(annotation.validation.Size.class)) {
+                        annotation.validation.Size sizeAnnotation = field.getAnnotation(annotation.validation.Size.class);
+                        int min = sizeAnnotation.minimum();
+                        int max = sizeAnnotation.maximum();
+
+                        Object value = field.get(object);
+                        if (value instanceof Integer) {
+                            int intValue = (int) value;
+                            if (intValue < min || intValue > max) {
+                                annotation.error.Error errorAnnotation = field.getAnnotation(annotation.error.Error.class);
+                                if (errorAnnotation != null) {
+                                    errors.put(objClass.getName() + "." + field.getName(), errorAnnotation.message());
+                                }
+                            }
+                        }
+                    }
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                    errors.put(objClass.getName() + "." + field.getName(), "Unable to access field value");
+                }
+            }
+        }
+
+        return errors;
     }
 
     public static Class<?>[] getArgsClasses(Object... args) {

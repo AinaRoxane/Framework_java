@@ -63,12 +63,11 @@ public class MainProcess {
         
         VerbMethod verbMethod = mapping.getSpecificVerbMethod(verb);
         
-        Object result = ReflectUtils.executeRequestMethod(mapping, request, verb);
+        Object result = ReflectUtils.executeRequestMethod(mapping, request, response, verb);
 
         if (verbMethod.isRestAPI()) {
             result = handleRest(result, response);
         }   
-
         if (result instanceof String) {
             out.println(result.toString());
         } else if (result instanceof ModelView) {
