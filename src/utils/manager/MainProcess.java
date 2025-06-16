@@ -3,6 +3,7 @@ package utils.manager;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -29,6 +30,15 @@ import utils.ReflectUtils;
 public class MainProcess {
     static FrontController frontController;
     private List<Exception> exceptions;
+    private ModelView lastModel;
+
+    public ModelView getLastModel() {
+        return lastModel;
+    }
+
+    public void setLastModel(ModelView lastModel) {
+        this.lastModel = lastModel;
+    }
 
     private static String handleRest(Object methodObject, HttpServletResponse response) {
         Gson gson = new Gson();
@@ -63,24 +73,27 @@ public class MainProcess {
         
         VerbMethod verbMethod = mapping.getSpecificVerbMethod(verb);
         
-        Object result = ReflectUtils.executeRequestMethod(mapping, request, response, verb);
+        try {
+            Object result = ReflectUtils.executeRequestMethod(mapping, request, response, verb);
+            if (verbMethod.isRestAPI()) {
+                result = handleRest(result, response);
+            }   
+            if (result instanceof String) {
+                out.println(result.toString());
+            } else if (result instanceof ModelView) {
+                ModelView modelView = ((ModelView) result);
+                HashMap<String, Object> data = ((HashMap<String, Object>)modelView.getData());
 
-        if (verbMethod.isRestAPI()) {
-            result = handleRest(result, response);
-        }   
-        if (result instanceof String) {
-            out.println(result.toString());
-        } else if (result instanceof ModelView) {
-            ModelView modelView = ((ModelView) result);
-            HashMap<String, Object> data = ((HashMap<String, Object>)modelView.getData());
-
-            for (Entry<String, Object> entry : data.entrySet()) {
-                request.setAttribute(entry.getKey(), entry.getValue());
+                for (Entry<String, Object> entry : data.entrySet()) {
+                    request.setAttribute(entry.getKey(), entry.getValue());
+                }
+                
+                request.getRequestDispatcher(modelView.getUrl()).forward(request, response);
+            } else {
+                throw new IllegalReturnTypeException("Invalid return type");
             }
-
-            request.getRequestDispatcher(modelView.getUrl()).forward(request, response);
-        } else {
-            throw new IllegalReturnTypeException("Invalid return type");
+        } catch (Exception e) {
+            
         }
     }
 

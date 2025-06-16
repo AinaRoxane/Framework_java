@@ -48,7 +48,6 @@ public class ObjectUtils {
         } else if (clazz.equals(File.class)) {
             object = FileUtils.createRequestFile(annotationValue, request);
         } else {
-            
             if (parameter.isAnnotationPresent(RequestParameter.class)) {
                 object = ObjectUtils.getObjectInstance(clazz, annotationValue, request);
             }

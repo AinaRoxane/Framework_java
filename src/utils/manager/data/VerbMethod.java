@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import jakarta.servlet.http.HttpServletRequest;
 import annotation.RestApi;
+import annotation.request.POST;
 
 public class VerbMethod {
     Method method;
@@ -18,6 +19,10 @@ public class VerbMethod {
 
     public boolean isRestAPI() {
         return method.isAnnotationPresent(RestApi.class);
+    }
+
+    public boolean isPOST() {
+        return method.isAnnotationPresent(POST.class);
     }
 
     // Constructor
