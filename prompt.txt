@@ -1,5 +1,0 @@
-framework:
-class annotation RESTAPI
-
-test:
-annoter une methode pour qu'il soit relier a une url 
