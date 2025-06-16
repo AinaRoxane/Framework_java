@@ -1,25 +1,33 @@
 package utils;
 
-
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import annotation.RequestParameter;
 import utils.manager.data.Session;
 import exception.AnnotationNotPresentException;
-import exception.InvalidRequestException;
 import utils.manager.url.Mapping;
 
 public class ReflectUtils {
+    static List<Object> methodParameters;
+
+    public static List<Object> getMethodParameters() {
+        return methodParameters;
+    }
+
+    public static void setMethodParameters(List<Object> methodParameters) {
+        ReflectUtils.methodParameters = methodParameters;
+    }
+
+
     private ReflectUtils() {
     }
 
@@ -51,94 +59,88 @@ public class ReflectUtils {
         }
     }
 
-    public static Object executeRequestMethod(Mapping mapping, HttpServletRequest request,HttpServletResponse response, String verb)
-            throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
-            InvocationTargetException, InstantiationException, ClassNotFoundException, NoSuchFieldException,
-            AnnotationNotPresentException, InvalidRequestException, IOException, ServletException {
+    public static Object executeRequestMethod( Mapping mapping, HttpServletRequest request, HttpServletResponse response, String verb) throws Exception {
         List<Object> objects = new ArrayList<>();
-
         Class<?> objClass = mapping.getClazz();
         Object requestObject = objClass.getConstructor().newInstance();
         Method method = mapping.getSpecificVerbMethod(verb).getMethod();
-        
+
         setSessionAttribute(requestObject, request);
 
+        // Collect parameters
         for (Parameter parameter : method.getParameters()) {
             Class<?> clazz = parameter.getType();
-            Object object = ObjectUtils.getDefaultValue(clazz);
+            Object paramInstance = ObjectUtils.getDefaultValue(clazz);
+            
             if (!parameter.isAnnotationPresent(RequestParameter.class) && !clazz.equals(Session.class)) {
                 throw new AnnotationNotPresentException(
-                        "One of your parameter require `@RequestParameter` annotation");
+                    "One of your parameter requires the `@RequestParameter` annotation");
             }
 
-            object = ObjectUtils.getParameterInstance(request, parameter, clazz, object);
-            objects.add(object);
-        }
-        
-        // Validate the objects populated from the parameters
-        HashMap<String, String> errors = verifyValidation(objects);
-        if (!errors.isEmpty()) {
-            request.setAttribute("validationErrors", errors);
+            paramInstance = ObjectUtils.getParameterInstance(request, parameter, clazz, paramInstance);
 
-            String referrer = request.getHeader("Referer");
-            if (referrer != null) {
-                request.getRequestDispatcher(referrer).forward(request, response);
-            } else {
-                throw new InvalidRequestException("Validation failed, and no referrer found to redirect back.");
+            // Validate the parameter object if necessary
+            Map<String, String> validationErrors = ValidationUtils.validateObject(paramInstance);
+            if (!validationErrors.isEmpty()) {
+                // Store errors in request scope for rendering on the previous page
+                request.setAttribute("validationErrors", validationErrors);
+
+                // Redirect to the previous page with the errors
+                String referer = request.getHeader("Referer"+"?");
+                if (referer != null) {
+                        public static Object executeRequestMethod( Mapping mapping, HttpServletRequest request, HttpServletResponse response, String verb) throws Exception {
+        List<Object> objects = new ArrayList<>();
+        Class<?> objClass = mapping.getClazz();
+        Object requestObject = objClass.getConstructor().newInstance();
+        Method method = mapping.getSpecificVerbMethod(verb).getMethod();
+
+        setSessionAttribute(requestObject, request);
+
+        // Collect parameters
+        for (Parameter parameter : method.getParameters()) {
+            Class<?> clazz = parameter.getType();
+            Object paramInstance = ObjectUtils.getDefaultValue(clazz);
+            
+            if (!parameter.isAnnotationPresent(RequestParameter.class) && !clazz.equals(Session.class)) {
+                throw new AnnotationNotPresentException(
+                    "One of your parameter requires the `@RequestParameter` annotation");
             }
-            return null;
+
+            paramInstance = ObjectUtils.getParameterInstance(request, parameter, clazz, paramInstance);
+
+            // Validate the parameter object if necessary
+            Map<String, String> validationErrors = ValidationUtils.validateObject(paramInstance);
+            if (!validationErrors.isEmpty()) {
+                // Store errors in request scope for rendering on the previous page
+                request.setAttribute("validationErrors", validationErrors);
+
+                // Redirect to the previous page with the errors
+                String referer = request.getHeader("Referer");
+                if (referer != null) {
+                    try {
+                        URL url = new URL(referer);
+                        String refererUri = url.getPath();
+                        response.sendRedirect(refererUri);
+                    } catch (MalformedURLException e) {
+                        e.printStackTrace();
+                    }
+                    return null;
+                }
+            }
+            objects.add(paramInstance);
         }
-        
+        return executeMethod(requestObject, method.getName(), objects.toArray());
+    }
+                    String errorParam = "errors=" + URLEncoder.encode(validationErrors.toString(), "UTF-8");
+                    response.sendRedirect(referer + "?" + errorParam);
+                    return null; // Stop further processing
+                }
+            }
+            objects.add(paramInstance);
+        }
         return executeMethod(requestObject, method.getName(), objects.toArray());
     }
 
-    public static HashMap<String, String> verifyValidation(List<Object> objects) {
-        HashMap<String, String> errors = new HashMap<>();
-
-        for (Object object : objects) {
-            Class<?> objClass = object.getClass();
-
-            for (Field field : objClass.getDeclaredFields()) {
-                field.setAccessible(true);
-
-                try {
-                    // Check if field has @Required annotation
-                    if (field.isAnnotationPresent(annotation.validation.Required.class)) {
-                        Object value = field.get(object);
-                        if (value == null || (value instanceof String && ((String) value).isEmpty())) {
-                            annotation.error.Error errorAnnotation = field.getAnnotation(annotation.error.Error.class);
-                            if (errorAnnotation != null) {
-                                errors.put(objClass.getName() + "." + field.getName(), errorAnnotation.message());
-                            }
-                        }
-                    }
-
-                    // Check if field has @Size annotation
-                    if (field.isAnnotationPresent(annotation.validation.Size.class)) {
-                        annotation.validation.Size sizeAnnotation = field.getAnnotation(annotation.validation.Size.class);
-                        int min = sizeAnnotation.minimum();
-                        int max = sizeAnnotation.maximum();
-
-                        Object value = field.get(object);
-                        if (value instanceof Integer) {
-                            int intValue = (int) value;
-                            if (intValue < min || intValue > max) {
-                                annotation.error.Error errorAnnotation = field.getAnnotation(annotation.error.Error.class);
-                                if (errorAnnotation != null) {
-                                    errors.put(objClass.getName() + "." + field.getName(), errorAnnotation.message());
-                                }
-                            }
-                        }
-                    }
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                    errors.put(objClass.getName() + "." + field.getName(), "Unable to access field value");
-                }
-            }
-        }
-
-        return errors;
-    }
 
     public static Class<?>[] getArgsClasses(Object... args) {
         Class<?>[] classes = new Class[args.length];

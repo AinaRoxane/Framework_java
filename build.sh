@@ -2,7 +2,7 @@
 
 # Define variables
 project_dir="/home/toffee/Documents/GitHub/Framework_java"
-test_dir="/home/toffee/Documents/S5/Naina/SPRINT/test"
+test_dir="/home/toffee/Documents/school/S5/Naina/SPRINT/test"
 web_dir="/opt/tomcat"
 gson_jar="/home/toffee/Bureau/LOGICIELS/apis/com.google.gson_2.10.1.v20230109-0753.jar"
 
